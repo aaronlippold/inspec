@@ -44,7 +44,7 @@ module Inspec::Resources
       # that does this securely
       escaped_query = query.gsub(/\\/, '\\\\').gsub(/"/, '\\"').gsub(/\$/, '\\$')
       # run the query
-      cmd = inspec.command("PGPASSWORD='#{@pass}' psql -U #{@user} #{dbs} -h localhost -c \"#{escaped_query}\"")
+      cmd = inspec.command("PGPASSWORD='#{@pass}' psql -U #{@user} #{dbs} -h localhost -A -t -c \"#{escaped_query}\"")
       out = cmd.stdout + "\n" + cmd.stderr
       if cmd.exit_status != 0 or
          out =~ /could not connect to .*/ or
@@ -52,13 +52,15 @@ module Inspec::Resources
         # skip this test if the server can't run the query
         skip_resource "Can't read run query #{query.inspect} on postgres_session: #{out}"
       else
+        Lines.new(cmd.stdout.strip, "PostgreSQL query: #{query}")
+        # @note the below should not be needed now that you are passing -A -t to psql
         # remove the whole header (i.e. up to the first ^-----+------+------$)
         # remove the tail
-        lines = cmd.stdout
-                   .sub(/(.*\n)+([-]+[+])*[-]+\n/, '')
-                   .sub(/\n[^\n]*\n\n$/, '')
-        Lines.new(lines.strip, "PostgreSQL query: #{query}")
+        # lines = cmd.stdout
+        # .sub(/(.*\n)+([-]+[+])*[-]+\n/, '')
+        # .sub(/\n[^\n]*\n\n$/, '')
       end
+      alias_method psql query
     end
   end
 end
