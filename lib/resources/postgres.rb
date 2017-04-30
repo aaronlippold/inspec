@@ -6,8 +6,8 @@
 
 module Inspec::Resources
   class Postgres < Inspec.resource(1)
-  name 'postgres'
-  attr_reader :service, :data_dir, :conf_dir, :conf_path, :version
+    name 'postgres'
+    attr_reader :service, :data_dir, :conf_dir, :conf_path, :version
     def initialize
       data_dir_command = conf_dir_from_process
       version_command = version_from_process(data_dir_command)
@@ -47,7 +47,7 @@ module Inspec::Resources
           inspec.directory('/var/lib/pgsql/data').exist?
           warn 'Found /var/lib/pgsql/data. Assuming postgresql install uses
                 un-versioned directories.'
-          return @version = nil
+          @version = nil
         else
           version_from_dir('/var/lib/pgsql/')
         end
@@ -100,18 +100,18 @@ module Inspec::Resources
         warn "PostgreSQL process not found - using filesystem to try and determine the pg 'data_dir'"
         return nil
       else
-        return data_dir_command
+        data_dir_command
       end
     end
 
     def version_from_process(pg_data_dir)
       if !pg_data_dir.empty?
-        version_command = inspec.command("cat `find #{pg_data_dir} \\\( ! -path #{pg_data_dir} -prune \\\) -type f -name \"PG_VERSION\"\`").stdout.strip
-        return version_command
+        version_command = inspec.command("psql --version | awk '{ print $NF }' | awk -F. '{ print $1\".\"$2 }'").stdout.strip
+        version_command
       else
         warn "Could not find the version from the active process or could not
               find a PG_VERSION file, finding the version via the filesystem."
-        return nil
+        nil
       end
     end
 
