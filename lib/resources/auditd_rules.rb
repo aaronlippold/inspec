@@ -114,23 +114,45 @@ module Inspec::Resources
       @lines = @content.lines.map(&:chomp)
 
       lines.each do |line|
-        if is_syscall?(line)
-          syscalls = get_syscalls line
-          action, list = get_action_list line
-          fields, opts = get_fields line
+        if is_file_syscall_syntax?(line)
+          get_file_syscall_syntax_rules(line)
 
-          # create a 'flatter' structure because sanity
-          syscalls.each do |s|
-            @rules[:syscalls] << { syscall: s, list: list, action: action, fields: fields }.merge(opts)
-          end
+        elsif is_syscall?(line)
+          get_syscall_rules(line)
+
         elsif is_file?(line)
-          file = get_file line
-          perms = get_permissions line
-          key = get_key line
-
-          @rules[:files] << { file: file, key: key, permissions: perms }
+          get_file_rules(line)
         end
       end
+    end
+
+    def get_file_syscall_syntax_rules(line)
+      file = get_file_syscall_syntax(line)
+      action, list = get_action_list line
+      fields, opts = get_fields line
+      fields_no_keys = fields.clone
+      remove_keys fields_no_keys
+      # create a 'flatter' structure because sanity
+      @rules[:files] << { file: file, list: list, action: action, fields: fields, fields_no_keys: fields_no_keys }.merge(opts)
+    end
+
+    def get_syscall_rules(line)
+      syscalls = get_syscalls line
+      action, list = get_action_list line
+      fields, opts = get_fields line
+      fields_no_keys = fields.clone
+      remove_keys fields_no_keys
+      # create a 'flatter' structure because sanity
+      syscalls.each do |s|
+        @rules[:syscalls] << { syscall: s, list: list, action: action, fields: fields, fields_no_keys: fields_no_keys }.merge(opts)
+      end
+    end
+
+    def get_file_rules(line)
+      file = get_file line
+      perms = get_permissions line
+      key = get_key line
+      @rules[:files] << { file: file, key: key, permissions: perms }
     end
 
     def syscall(name)
@@ -167,6 +189,10 @@ module Inspec::Resources
       line.match(/-w /)
     end
 
+    def is_file_syscall_syntax?(line)
+      line.match(/-F path/)
+    end
+
     def get_syscalls(line)
       line.scan(/-S ([^ ]+) /).flatten.first.split(',')
     end
@@ -186,6 +212,10 @@ module Inspec::Resources
       line.match(/-w (.+) -p/)[1]
     end
 
+    def get_file_syscall_syntax(line)
+      line.match(/-F path=(\S+)\s/)[1]
+    end
+
     def get_permissions(line)
       line.match(/-p ([^ ]+)/)[1]
     end
@@ -200,6 +230,10 @@ module Inspec::Resources
       end
 
       [fields, opts]
+    end
+
+    def remove_keys(fields)
+      fields.delete_if { |x| x.start_with? 'key' }
     end
   end
 end
