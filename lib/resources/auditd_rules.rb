@@ -190,7 +190,7 @@ module Inspec::Resources
     end
 
     def is_file_syscall_syntax?(line)
-      line.match(/-F path/)
+      line.match(/-F path=/)
     end
 
     def get_syscalls(line)
