@@ -116,8 +116,9 @@ module Inspec::Resources
       lines.each do |line|
         if is_file_syscall_syntax?(line)
           get_file_syscall_syntax_rules(line)
+        end
 
-        elsif is_syscall?(line)
+        if is_syscall?(line)
           get_syscall_rules(line)
 
         elsif is_file?(line)
