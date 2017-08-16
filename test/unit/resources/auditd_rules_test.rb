@@ -18,21 +18,21 @@ describe 'Inspec::Resources::AuditDaemonRules' do
   it 'auditd_rules syscall interface' do
     resource = MockLoader.new(:centos7).load_resource('auditd_rules')
     _(resource.send('syscall', 'open').send('rules')).must_equal [
-      {:syscall=>"open", :list=>"exit", :action=>"always", :fields=>["arch=b64", "exit=-EACCES", "key=access"], :fields_no_keys=>["arch=b64", "exit=-EACCES"], :arch=>"b64", :exit=>"-EACCES", :key=>"access"}
+      {:syscall=>"open", :list=>"exit", :action=>"always", :fields=>["arch=b64", "exit=-EACCES", "key=access"], :fields_nokey=>["arch=b64", "exit=-EACCES"], :arch=>"b64", :exit=>"-EACCES", :key=>"access"}
     ]
   end
 
   it 'auditd_rules syscall query chaining' do
     resource = MockLoader.new(:centos7).load_resource('auditd_rules')
     _(resource.send('syscall', 'open').field('key', 'access').send('rules')).must_equal [
-      {:syscall=>"open", :list=>"exit", :action=>"always", :fields=>["arch=b64", "exit=-EACCES", "key=access"], :fields_no_keys=>["arch=b64", "exit=-EACCES"], :arch=>"b64", :exit=>"-EACCES", :key=>"access"}
+      {:syscall=>"open", :list=>"exit", :action=>"always", :fields=>["arch=b64", "exit=-EACCES", "key=access"], :fields_nokey=>["arch=b64", "exit=-EACCES"], :arch=>"b64", :exit=>"-EACCES", :key=>"access"}
     ]
   end
 
   it 'auditd_rules syscall query chaining with short syntax' do
     resource = MockLoader.new(:centos7).load_resource('auditd_rules')
     _(resource.send('syscall', 'open').key('access').list('exit').send('rules')).must_equal [
-      {:syscall=>"open", :list=>"exit", :action=>"always", :fields=>["arch=b64", "exit=-EACCES", "key=access"], :fields_no_keys=>["arch=b64", "exit=-EACCES"], :arch=>"b64", :exit=>"-EACCES", :key=>"access"}
+      {:syscall=>"open", :list=>"exit", :action=>"always", :fields=>["arch=b64", "exit=-EACCES", "key=access"], :fields_nokey=>["arch=b64", "exit=-EACCES"], :arch=>"b64", :exit=>"-EACCES", :key=>"access"}
     ]
   end
 

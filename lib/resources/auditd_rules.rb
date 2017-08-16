@@ -131,21 +131,21 @@ module Inspec::Resources
       file = get_file_syscall_syntax(line)
       action, list = get_action_list line
       fields, opts = get_fields line
-      fields_no_keys = fields.clone
-      remove_keys fields_no_keys
+      fields_nokey = fields.clone
+      remove_keys fields_nokey
       # create a 'flatter' structure because sanity
-      @rules[:files] << { file: file, list: list, action: action, fields: fields, fields_no_keys: fields_no_keys }.merge(opts)
+      @rules[:files] << { file: file, list: list, action: action, fields: fields, fields_nokey: fields_nokey }.merge(opts)
     end
 
     def get_syscall_rules(line)
       syscalls = get_syscalls line
       action, list = get_action_list line
       fields, opts = get_fields line
-      fields_no_keys = fields.clone
-      remove_keys fields_no_keys
+      fields_nokey = fields.clone
+      remove_keys fields_nokey
       # create a 'flatter' structure because sanity
       syscalls.each do |s|
-        @rules[:syscalls] << { syscall: s, list: list, action: action, fields: fields, fields_no_keys: fields_no_keys }.merge(opts)
+        @rules[:syscalls] << { syscall: s, list: list, action: action, fields: fields, fields_nokey: fields_nokey }.merge(opts)
       end
     end
 
@@ -235,6 +235,79 @@ module Inspec::Resources
 
     def remove_keys(fields)
       fields.delete_if { |x| x.start_with? 'key' }
+    end
+  end
+
+  class AuditDaemonRulesConf < AuditDaemonRules
+    name 'auditd_rules_conf'
+    desc 'Use the auditd_rules_conf InSpec audit resource to test the rules for logging that exist in audit.rules itself without using auditctl. The audit.rules file is typically located under /etc/audit/ and contains the list of rules that define what is captured in log files.'
+    example "
+          # syntax for auditd < 2.3
+          describe auditd_rules do
+            its('LIST_RULES') {should contain_match(/^exit,always arch=.* key=time-change syscall=adjtimex,settimeofday/) }
+            its('LIST_RULES') {should contain_match(/^exit,always arch=.* key=time-change syscall=stime,settimeofday,adjtimex/) }
+            its('LIST_RULES') {should contain_match(/^exit,always arch=.* key=time-change syscall=clock_settime/)}
+            its('LIST_RULES') {should contain_match(/^exit,always watch=\/etc\/localtime perm=wa key=time-change/)}
+          end
+
+          # syntax for auditd >= 2.3
+          describe auditd_rules.syscall('open').action do
+            it { should eq(['always']) }
+          end
+
+          describe auditd_rules.key('sshd_config') do
+            its('permissions') { should contain_match(/x/) }
+          end
+
+          describe auditd_rules do
+            its('lines') { should contain_match(%r{-w /etc/ssh/sshd_config/}) }
+          end
+    "
+
+    include CommentParser
+
+    def initialize(path = nil)
+      @path = path || '/etc/audit/audit.rules'
+      @content = read_content
+      if @content =~ /^LIST_RULES:/
+        # do not warn on centos 5
+        unless inspec.os[:name] == 'centos' && inspec.os[:release].to_i == 5
+          warn '[WARN] this version of auditd is outdated. Updating it allows for using more precise matchers.'
+        end
+        @legacy = AuditdRulesLegacy.new(@content)
+      else
+        parse_content
+        @legacy = nil
+      end
+    end
+
+    def to_s
+      'Audit Daemon Rules found in audit.rules'
+    end
+
+    private
+
+    def clean_conf_file
+      data = inspec.file(@path).content.to_s.lines
+      content = []
+      data.each do |line|
+        line.chomp!
+        line, = parse_comment_line(line, comment_char: '#', standalone_comments: false)
+        content << line unless line.empty?
+      end
+      content.join("\n")
+    end
+
+    def read_content
+      file = inspec.file(@path)
+      if !file.file?
+        return skip_resource "Can't find file \"#{@path}\""
+      end
+      raw_conf = file.content
+      if raw_conf.empty? && !file.empty?
+        return skip_resource "Can't read the contents of \"#{@path}\""
+      end
+      clean_conf_file
     end
   end
 end
