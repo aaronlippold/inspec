@@ -7,6 +7,8 @@ class RsyslogConf < Inspec::resource(1)
   example "
   "
 
+  Struct.new("action", :params)
+
   # figure out which implementation it is using, sec/pwquality, or whatever.
 
   attr_reader :params
@@ -19,6 +21,8 @@ class RsyslogConf < Inspec::resource(1)
     @rules = []
     @templates = []
     @directives = []
+    @globals = []
+    @actions = []
     read_content
   end
 
@@ -34,6 +38,14 @@ class RsyslogConf < Inspec::resource(1)
     RsyslogGlobalDirectives.new(@directives)
   end
 
+  def globals
+    @globals
+  end
+
+  def actions
+    @globals
+  end
+
   private
 
   def read_content
@@ -46,8 +58,20 @@ class RsyslogConf < Inspec::resource(1)
   def parse_conf(content)
     line_continue = false
     last_line = ''
-    content.map.with_index do |line, i|
+    index = 0
+    while (!doneParsing)
+      if content[index][-2] == '{'
+        rulesetContent, index = getContentWithBrackets(content, index)
+      elsif /^[^.]*?.[^.]*?.*/.match(line)
+
+      end
+    end
+    content.each_with_index do |line, i|
       data, = parse_comment_line(line, comment_char: '#', standalone_comments: false)
+      if data != ''
+
+      end
+
       if line[-2] == '\'' || content[i+1][0] == '&'
         line_continue = true
         last_line = last_line + data
@@ -59,11 +83,32 @@ class RsyslogConf < Inspec::resource(1)
     end.compact
   end
 
+  def getContentWithBrackets(content, index)
+    newContent = []
+    newIndex = index
+    numBrackets = 1
+    while(numBrackets != 0)
+      if content[newIndex][-1] == '}'
+        numBrackets += 1
+      end
+      if content[newIndex].include? "}"
+        numBrackerts -= 1
+      end
+      newContent.push(content[newIndex])
+      newIndex += 1
+    end
+    content, newIndex
+  end
+
   def parse_line(line)
     if line[0] != '$'
       @rules.push(parse_rule(line))
     elsif line.split[0] == '$template'
       @templates.push(parse_template(line))
+    elsif line.match(/global.+/)
+      @globals.push(parse_global_rainer(line))
+    elsif line.match(/action.+/)
+      @actions.push(parse_action_rainer(line))
     else
       @directives.push(parse_global_directive(line))
     end
@@ -98,8 +143,15 @@ class RsyslogConf < Inspec::resource(1)
   def parse_global_directive(line)
     {
       'name' => line.split[0],
-      'value' => line.split[1],
+      'value' => line.split[1].split(','),
     }
+  end
+
+  def parse_global_rainer(line)
+    params = []
+    line.split('(')[0..-1].split(/\s/).each do
+      params.push(/^\s*([^=]*?)\s*=\s*(.*?)\s*/.match(params))
+    end
   end
 
   def parse_template(line)
@@ -109,6 +161,13 @@ class RsyslogConf < Inspec::resource(1)
       'text' =>    parts[1],
       'options' => parts[2],
     }
+  end
+
+  def parse_action_rainer(line)
+    params = []
+    line.split('(')[0..-1].split(/\s/).each do
+      params.push(/^\s*([^=]*?)\s*=\s*(.*?)\s*/.match(params))
+    end
   end
 
   def read_file(conf_path = @conf_path)
