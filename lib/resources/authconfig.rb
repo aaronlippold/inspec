@@ -107,14 +107,20 @@ module Inspec::Resources
     end
   end
   class Mini < Parslet::Parser
-    rule(:nonSpace) { match('\S').repeat(1) }
-    rule(:space) { match('\s').repeat(1) }
+    rule(:filler?) { space.repeat }
+    rule(:space)   { match('\s+') | match["\n"] }
 
-    rule(:wordAndSpace ) { nonSpace || space }
+    rule(:wordOrSpace ) { nonSpace | space }
+    rule(:wordAndSpace) { nonSpace && space }
     rule(:is) { match('\s') >> str('is') >> match('\s') }
     rule(:equals) { match('\s') >> str('=') >> match('\s') }
-    rule(:is_expression) { wordAndSpace.as(:left) >> is.as(:is) >> wordAndSpace.as(:right) }
-    rule(:equals_expression) { wordAndSpace.as(:left) >> is.as(:is) >> wordAndSpace.as(:right) }
-    root :expression
+    rule(:is_expression) { wordOrSpace.as(:left) >> is.as(:is) >> wordOrSpace.repeat(1,3).as(:right) }
+    rule(:equals_expression) { wordAndSpace.as(:left) >> equals.as(:is) >> wordAndSpace.as(:right) }
+
+    rule(:exp) {
+      (equals_expression) >> filler?
+    }
+
+    root :is_expression | :equals_expression
   end
 end
