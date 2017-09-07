@@ -37,6 +37,7 @@ group :tools do
   gem 'pry', '~> 0.10'
   gem 'rb-readline'
   gem 'license_finder'
+  gem 'pdf-reader'
 end
 
 # gems for Maintainers.md generation

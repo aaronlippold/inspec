@@ -160,6 +160,7 @@ class MockLoader
       '/var/lib/postgresql/9.5/main' => mockfile.call('var.9.5.main'),
       '/var/lib/fake_rpmdb' => mockdir.call(true),
       '/var/lib/rpmdb_does_not_exist' => mockdir.call(false),
+      'CIS_Distribution_Independent_Linux_Benchmark_v1.0.1.pdf' => mockdir.call('CIS_Distribution_Independent_Linux_Benchmark_v1.0.1.pdf'),
     }
 
     # create all mock commands
