@@ -2,7 +2,7 @@
 
 module Inspec
   class Control
-    attr_accessor :id, :title, :desc, :impact, :tests, :tags
+    attr_accessor :id, :title, :desc, :impact, :tests, :tags, :refs
     def initialize
       @tests = []
       @tags = []
@@ -17,7 +17,7 @@ module Inspec
     end
 
     def to_hash
-      { id: id, title: title, desc: desc, impact: impact, tests: tests.map(&:to_hash), tags: tags.map(&:to_hash) }
+      { id: id, title: title, desc: desc, impact: impact, tests: tests.map(&:to_hash), tags: tags.map(&:to_hash), refs: refs.map(&:to_hash) }
     end
 
     def to_ruby
@@ -26,6 +26,7 @@ module Inspec
       res.push "  desc  #{prettyprint_text(desc, 2)}" unless desc.to_s.empty?
       res.push "  impact #{impact}" unless impact.nil?
       tags.each { |t| res.push(indent(t.to_ruby, 2)) }
+      refs.each { |t| res.push(indent(t.to_ruby, 2)) }
       tests.each { |t| res.push(indent(t.to_ruby, 2)) }
       res.push 'end'
       res.join("\n")
